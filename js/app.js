@@ -314,9 +314,18 @@ function calculate(now = new Date()) {
   const period = getBudgetPeriod(now);
   const calculatedAvailable = getCalculatedAvailable(period.periodStart);
   const spent = getSpentInPeriod(period.periodStart, now);
+  const savings = Number(data.savingsGoal) || 0;
+  const thirds = getThirdsDeduction(period.periodStart);
   const manual = data.useManualBalance && data.accountBalance !== null;
-  const balance = manual ? Number(data.accountBalance) : calculatedAvailable - spent;
-  const remaining = balance;
+
+  let remaining;
+  if (manual) {
+    // Stav účtu už reflektuje minulé útraty; úspory a třetinky se strhávají z toho, co je k utracení
+    remaining = Number(data.accountBalance) - savings - thirds;
+  } else {
+    remaining = calculatedAvailable - spent;
+  }
+
   const daily = remaining / period.daysLeft;
 
   return {
@@ -326,7 +335,8 @@ function calculate(now = new Date()) {
     daily,
     period,
     manual,
-    thirds: getThirdsDeduction(period.periodStart),
+    savings,
+    thirds,
     fixed: getFixedTotal(),
   };
 }
@@ -379,8 +389,12 @@ function render() {
 
   balanceStat.classList.toggle('manual', calc.manual);
   if (calc.manual) {
+    const parts = [`Ruční stav účtu`];
+    if (calc.savings > 0) parts.push(`−${fmt.format(calc.savings)} úspory`);
+    if (calc.thirds > 0) parts.push(`−${fmt.format(calc.thirds)} třetinky`);
+    parts.push(`dle příjmu by bylo ${fmt.format(calc.calculatedAvailable)}`);
     balanceHint.innerHTML =
-      `Ruční stav účtu · dle příjmu by bylo ${fmt.format(calc.calculatedAvailable)}` +
+      parts.join(' · ') +
       ` · <button type="button" class="btn-link" id="resetToCalculated">přepočítat z příjmu</button>`;
     document.getElementById('resetToCalculated')?.addEventListener('click', resetToCalculated);
   } else {
