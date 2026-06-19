@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="description" content="Osobní finanční tracker – subscriptiony, fixní náklady a denní rozpočet">
+  <title>Finance Tracker</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon.svg">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <div class="header-top">
+        <h1>Finance Tracker</h1>
+        <p class="subtitle" id="currentMonth"></p>
+      </div>
+    </header>
+
+    <main>
+      <!-- Dashboard -->
+      <section class="card hero-card" id="dashboard">
+        <div class="hero-main">
+          <span class="label">Dnes můžeš utratit</span>
+          <div class="hero-amount" id="dailyBudget">—</div>
+          <span class="hero-sub" id="dailyBudgetSub"></span>
+        </div>
+
+        <div class="payday-banner" id="paydayBanner">
+          <div class="payday-icon">💰</div>
+          <div class="payday-info">
+            <span class="payday-label">Další výplata</span>
+            <span class="payday-count" id="paydayCount">—</span>
+            <span class="payday-range" id="paydayRange"></span>
+          </div>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat">
+            <span class="stat-label">Zbývá do výplaty</span>
+            <span class="stat-value" id="remainingMonth">—</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Utráceno v období</span>
+            <span class="stat-value stat-spent" id="spentMonth">—</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Fixní náklady</span>
+            <span class="stat-value" id="fixedTotal">—</span>
+          </div>
+          <div class="stat stat-editable" id="balanceStat">
+            <span class="stat-label">K dispozici · stav účtu</span>
+            <div class="input-group input-group-stat">
+              <input type="number" id="accountBalance" step="100" inputmode="decimal" aria-label="Stav účtu">
+              <span class="suffix">Kč</span>
+            </div>
+            <span class="stat-hint" id="balanceHint"></span>
+          </div>
+          <div class="stat" id="thirdsStat" hidden>
+            <span class="stat-label">Třetinky (období)</span>
+            <span class="stat-value stat-thirds" id="thirdsTotal">—</span>
+          </div>
+        </div>
+
+        <div class="progress-wrap">
+          <div class="progress-header">
+            <span>Průběh období</span>
+            <span id="progressLabel">—</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Quick spend log -->
+      <section class="card">
+        <h2>Zaznamenat útratu</h2>
+        <form id="spendForm" class="spend-form">
+          <input type="number" id="spendAmount" placeholder="Částka v Kč" min="1" step="1" required inputmode="decimal">
+          <input type="text" id="spendNote" placeholder="Poznámka (volitelné)" maxlength="80">
+          <button type="submit" class="btn btn-primary">Přidat</button>
+        </form>
+        <ul class="spend-list" id="todaySpends"></ul>
+      </section>
+
+      <!-- Income & savings -->
+      <section class="card">
+        <h2>Příjem a úspory</h2>
+        <div class="form-row">
+          <label for="income">Měsíční příjem</label>
+          <div class="input-group">
+            <input type="number" id="income" min="0" step="100" inputmode="decimal">
+            <span class="suffix">Kč</span>
+          </div>
+        </div>
+        <div class="form-row">
+          <label for="savingsGoal">Chci ušetřit měsíčně</label>
+          <div class="input-group">
+            <input type="number" id="savingsGoal" min="0" step="100" inputmode="decimal">
+            <span class="suffix">Kč</span>
+          </div>
+        </div>
+        <div class="form-row">
+          <label>Výplata přichází (přibližně)</label>
+          <div class="payday-inputs">
+            <div class="payday-input-group">
+              <span class="payday-input-label">Nejdříve</span>
+              <div class="input-group input-group-sm">
+                <input type="number" id="paydayFrom" min="1" max="28" step="1" inputmode="numeric">
+                <span class="suffix">.</span>
+              </div>
+            </div>
+            <span class="payday-input-sep">–</span>
+            <div class="payday-input-group">
+              <span class="payday-input-label">Nejpozději</span>
+              <div class="input-group input-group-sm">
+                <input type="number" id="paydayTo" min="1" max="31" step="1" inputmode="numeric">
+                <span class="suffix">.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Thirds (installments) -->
+      <section class="card">
+        <div class="card-header">
+          <h2>Třetinky</h2>
+          <button type="button" class="btn btn-ghost btn-sm" id="addThirdBtn">+ Přidat</button>
+        </div>
+        <p class="section-hint">Platba rozložená na 3 splátky — každé období se strhne třetina od další výplaty.</p>
+        <ul class="expense-list" id="thirdList"></ul>
+      </section>
+
+      <!-- Fixed expenses -->
+      <section class="card">
+        <div class="card-header">
+          <h2>Pravidelné výdaje</h2>
+          <button type="button" class="btn btn-ghost btn-sm" id="addExpenseBtn">+ Přidat</button>
+        </div>
+        <ul class="expense-list" id="expenseList"></ul>
+        <div class="expense-total">
+          <span>Celkem měsíčně</span>
+          <strong id="expenseListTotal">—</strong>
+        </div>
+      </section>
+
+      <!-- Third modal -->
+      <dialog id="thirdModal" class="modal">
+        <form method="dialog" id="thirdForm">
+          <h3 id="thirdModalTitle">Přidat třetinku</h3>
+          <input type="hidden" id="thirdId">
+          <div class="form-row">
+            <label for="thirdName">Název</label>
+            <input type="text" id="thirdName" placeholder="např. Mobil" required maxlength="60">
+          </div>
+          <div class="form-row">
+            <label for="thirdAmount">Celková částka</label>
+            <div class="input-group">
+              <input type="number" id="thirdAmount" min="1" step="1" required inputmode="decimal">
+              <span class="suffix">Kč</span>
+            </div>
+          </div>
+          <p class="modal-hint" id="thirdStartHint"></p>
+          <div class="modal-actions">
+            <button type="button" class="btn btn-ghost" id="cancelThird">Zrušit</button>
+            <button type="submit" class="btn btn-primary">Uložit</button>
+          </div>
+        </form>
+      </dialog>
+
+      <!-- Expense modal -->
+      <dialog id="expenseModal" class="modal">
+        <form method="dialog" id="expenseForm">
+          <h3 id="expenseModalTitle">Přidat výdaj</h3>
+          <input type="hidden" id="expenseId">
+          <div class="form-row">
+            <label for="expenseName">Název</label>
+            <input type="text" id="expenseName" placeholder="např. Netflix" required maxlength="60">
+          </div>
+          <div class="form-row">
+            <label for="expenseAmount">Částka měsíčně</label>
+            <div class="input-group">
+              <input type="number" id="expenseAmount" min="0" step="1" required inputmode="decimal">
+              <span class="suffix">Kč</span>
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn btn-ghost" id="cancelExpense">Zrušit</button>
+            <button type="submit" class="btn btn-primary">Uložit</button>
+          </div>
+        </form>
+      </dialog>
+    </main>
+
+    <footer class="footer">
+      <p id="saveStatus">Data se ukládají automaticky</p>
+      <p class="footer-sub">Zůstanou i po zavření prohlížeče · jen v tomto zařízení</p>
+    </footer>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
